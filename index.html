@@ -43,6 +43,128 @@
   .see-also { color: #555; font-size: 0.95em; }
   ol, ul { padding-left: 1.5rem; }
   li { margin: 0.3rem 0; }
+
+  /* ── Chat widget ── */
+  #chat-widget {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1000;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  #chat-toggle {
+    background: #0366d6;
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 0.7rem 1.2rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  #chat-toggle:hover { background: #0256b9; }
+  #chat-panel {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    bottom: 3.5rem;
+    right: 0;
+    width: min(380px, 92vw);
+    max-height: 520px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+    overflow: hidden;
+  }
+  #chat-panel.open { display: flex; }
+  #chat-header {
+    background: #0366d6;
+    color: #fff;
+    padding: 0.7rem 1rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #chat-header button {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  #chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    font-size: 0.9rem;
+  }
+  .chat-msg { max-width: 90%; line-height: 1.5; }
+  .chat-msg.user {
+    align-self: flex-end;
+    background: #e8f0fe;
+    border-radius: 12px 12px 2px 12px;
+    padding: 0.5rem 0.8rem;
+    color: #1a1a1a;
+  }
+  .chat-msg.assistant {
+    align-self: flex-start;
+    background: #f6f8fa;
+    border-radius: 12px 12px 12px 2px;
+    padding: 0.5rem 0.8rem;
+    border: 1px solid #e0e0e0;
+    color: #1a1a1a;
+  }
+  .chat-msg.assistant p { margin: 0 0 0.4rem; }
+  .chat-msg.assistant p:last-child { margin-bottom: 0; }
+  .chat-sources {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: #555;
+  }
+  .chat-sources a { color: #0366d6; text-decoration: none; }
+  .chat-sources a:hover { text-decoration: underline; }
+  .chat-thinking {
+    align-self: flex-start;
+    color: #888;
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+  #chat-form {
+    display: flex;
+    border-top: 1px solid #e0e0e0;
+    padding: 0.5rem;
+    gap: 0.4rem;
+  }
+  #chat-input {
+    flex: 1;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.9rem;
+    outline: none;
+  }
+  #chat-input:focus { border-color: #0366d6; }
+  #chat-send {
+    background: #0366d6;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  #chat-send:disabled { background: #aac4e8; cursor: not-allowed; }
+  #chat-send:hover:not(:disabled) { background: #0256b9; }
 </style>
 </head>
 <body>
@@ -3275,5 +3397,140 @@
 <hr>
 <p><small>Källa: Axiell — <a href="https://www.axiell.com">www.axiell.com</a></small></p>
 </footer>
+
+<!-- ── Chat widget ── -->
+<div id="chat-widget">
+  <div id="chat-panel" role="dialog" aria-label="Sök i manualen">
+    <div id="chat-header">
+      <span>Fråga om manualen</span>
+      <button id="chat-close" aria-label="Stäng">&times;</button>
+    </div>
+    <div id="chat-messages" aria-live="polite"></div>
+    <form id="chat-form" autocomplete="off">
+      <input
+        id="chat-input"
+        type="text"
+        placeholder="Ställ en fråga…"
+        aria-label="Din fråga"
+        maxlength="300"
+      />
+      <button id="chat-send" type="submit">Skicka</button>
+    </form>
+  </div>
+  <button id="chat-toggle" aria-expanded="false" aria-controls="chat-panel">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/>
+    </svg>
+    Fråga manualen
+  </button>
+</div>
+
+<script>
+(function () {
+  // Replace with your deployed Vercel API URL
+  var API_URL = "https://YOUR-VERCEL-PROJECT.vercel.app/api/search";
+
+  var toggle = document.getElementById("chat-toggle");
+  var panel  = document.getElementById("chat-panel");
+  var closeBtn = document.getElementById("chat-close");
+  var form   = document.getElementById("chat-form");
+  var input  = document.getElementById("chat-input");
+  var send   = document.getElementById("chat-send");
+  var msgs   = document.getElementById("chat-messages");
+
+  toggle.addEventListener("click", function () {
+    var open = panel.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) input.focus();
+  });
+
+  closeBtn.addEventListener("click", function () {
+    panel.classList.remove("open");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.focus();
+  });
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var question = input.value.trim();
+    if (!question) return;
+
+    addMsg("user", escHtml(question));
+    input.value = "";
+    send.disabled = true;
+
+    var thinking = document.createElement("div");
+    thinking.className = "chat-thinking";
+    thinking.textContent = "Söker i manualen…";
+    msgs.appendChild(thinking);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: question }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        thinking.remove();
+        var html = markdownToHtml(data.answer || "Inget svar.");
+        if (data.sources && data.sources.length) {
+          html += '<div class="chat-sources"><strong>Källor:</strong><ul style="margin:0.3rem 0 0;padding-left:1.2rem;">';
+          data.sources.forEach(function (s) {
+            html += '<li><a href="' + escHtml(s.url) + '">' + escHtml(s.section) + '</a></li>';
+          });
+          html += "</ul></div>";
+        }
+        addMsg("assistant", html);
+      })
+      .catch(function () {
+        thinking.remove();
+        addMsg("assistant", "Något gick fel. Kontrollera att API-adressen är korrekt inställd.");
+      })
+      .finally(function () {
+        send.disabled = false;
+        input.focus();
+      });
+  });
+
+  function addMsg(role, html) {
+    var div = document.createElement("div");
+    div.className = "chat-msg " + role;
+    div.innerHTML = html;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function escHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // Minimal markdown → HTML: bold, bullet lists, line breaks
+  function markdownToHtml(text) {
+    var escaped = escHtml(text);
+    // Bold
+    escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    // Bullet list items
+    var lines = escaped.split("\n");
+    var out = [];
+    var inList = false;
+    lines.forEach(function (line) {
+      if (/^[\*\-] /.test(line)) {
+        if (!inList) { out.push("<ul style='margin:0.3rem 0;padding-left:1.2rem;'>"); inList = true; }
+        out.push("<li>" + line.replace(/^[\*\-] /, "") + "</li>");
+      } else {
+        if (inList) { out.push("</ul>"); inList = false; }
+        if (line.trim()) out.push("<p>" + line + "</p>");
+      }
+    });
+    if (inList) out.push("</ul>");
+    return out.join("");
+  }
+})();
+</script>
 </body>
 </html>

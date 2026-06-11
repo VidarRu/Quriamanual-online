@@ -1,0 +1,13 @@
+{
+  "name": "quriamanual-online",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "embed": "node scripts/embed.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "openai": "^4.52.0"
+  }
+}
