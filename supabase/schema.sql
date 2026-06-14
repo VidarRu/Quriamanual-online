@@ -20,6 +20,20 @@ create index if not exists manual_chunks_embedding_idx
   using ivfflat (embedding vector_cosine_ops)
   with (lists = 50);
 
+-- Cache for answered questions — keyed on normalized question text
+create table if not exists question_cache (
+  id               bigserial primary key,
+  question_key     text unique not null,   -- normalized (lowercase, trimmed)
+  question_display text not null,           -- original question text
+  answer           text not null,
+  sources          jsonb not null default '[]',
+  hit_count        int not null default 0,
+  created_at       timestamptz default now(),
+  last_hit_at      timestamptz default now()
+);
+
+create index if not exists question_cache_key_idx on question_cache (question_key);
+
 -- RPC function used by the API route to find similar chunks
 create or replace function match_chunks(
   query_embedding vector(1536),
